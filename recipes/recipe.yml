@@ -46,13 +46,12 @@ modules:
   - type: containerfile
     snippets:
       # 1단계: 빌드에 필요한 도구들을 설치합니다.
-      # (이 단계는 변경 없습니다)
       - RUN rpm-ostree install -y kernel-devel gcc make git
 
-      # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다.
+      # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드하고, 해당 커널의 모듈 맵을 갱신합니다.
       - |
         RUN set -eux && \
-            # rpm-ostree install로 설치된 Bazzite 커널 버전을 찾습니다.
+            # Bazzite 커널 버전을 찾습니다.
             KVER=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
             echo "--- Found Bazzite Kernel Version: ${KVER} ---" && \
             
@@ -63,9 +62,12 @@ modules:
             git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
             cd /tmp/rtl8852bu && \
             
-            # make 명령어에 '-C' 옵션으로 정확한 커널 경로(KDIR)를 전달합니다.
+            # Bazzite 커널 경로를 기준으로 빌드합니다.
             make -C ${KDIR} M=$(pwd) modules && \
             make -C ${KDIR} M=$(pwd) install && \
             
-            depmod -a && \
+            # *** 여기가 수정된 부분입니다 ***
+            # depmod에게 Bazzite 커널($KVER)의 맵을 갱신하라고 정확히 알려줍니다.
+            depmod -a ${KVER} && \
+            
             rm -rf /tmp/rtl8852bu
