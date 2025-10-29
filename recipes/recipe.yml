@@ -43,22 +43,17 @@ modules:
       - scope: user # Also add Flathub user repo, but no user packages
 
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
-
-  # ----------------------------------------------
-# --- 여기부터 Realtek USB 드라이버 추가 ---
-# ----------------------------------------------
-
   - type: containerfile
-        snippets:
-          - |
-            RUN set -eux && \
-                rpm-ostree install -y kernel-devel gcc make git && \
-                git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
-                cd /tmp/rtl8852bu && \
-                make && \
-                make install && \
-                depmod -a && \
-                rm -rf /tmp/rtl8852bu
+    snippets:
+      - |
+        RUN set -eux && \
+            rpm-ostree install -y kernel-devel gcc make git && \
+            git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
+            cd /tmp/rtl8852bu && \
+            make && \
+            make install && \
+            depmod -a && \
+            rm -rf /tmp/rtl8852bu
 
 # ----------------------------------------------
 # --- 여기까지 추가 ---
