@@ -45,11 +45,6 @@ modules:
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   - type: containerfile
     snippets:
-      # 1단계: 최신 커널 모듈, 커널 헤더, 빌드 도구를 모두 설치합니다.
-      - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
-
-  - type: containerfile
-    snippets:
       # 1단계: 모든 도구 설치
       - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
 
@@ -58,6 +53,10 @@ modules:
       # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다.
       - |
         RUN set -eux && \
+            # *** 여기가 수정된 부분입니다 ***
+            # git이 대화형 프롬프트를 띄우지 않도록 설정합니다.
+            export GIT_TERMINAL_PROMPT=0 && \
+
             # 각 패키지의 버전을 따로 찾습니다.
             KVER_MOD=$(rpm -q kernel-modules --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
             KVER_DEVEL=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
@@ -72,8 +71,7 @@ modules:
             ls -ld ${KDIR} && \
             ls -ld /lib/modules/${KVER_MOD} && \
             
-            # *** 여기가 수정된 부분입니다 ***
-            # 존재하지 않는 '...-20240118' 대신, 메인 저장소 주소를 사용합니다.
+            # 메인 저장소 주소를 사용합니다.
             git clone https://github.com/morrownr/rtl8852bu.git /tmp/rtl8852bu && \
             cd /tmp/rtl8852bu && \
             
