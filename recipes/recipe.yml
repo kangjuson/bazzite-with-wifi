@@ -54,9 +54,6 @@ modules:
       # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다.
       - |
         RUN set -eux && \
-            # git이 대화형 프롬프트를 띄우지 않도록 설정합니다.
-            export GIT_TERMINAL_PROMPT=0 && \
-            
             # 각 패키지의 버전을 따로 찾습니다.
             KVER_MOD=$(rpm -q kernel-modules --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
             KVER_DEVEL=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
@@ -71,8 +68,9 @@ modules:
             ls -ld ${KDIR} && \
             ls -ld /lib/modules/${KVER_MOD} && \
             
-            # 메인 저장소 주소를 사용합니다.
-            git clone https://github.com/morrownr/rtl8852bu.git /tmp/rtl8852bu && \
+            # *** 여기가 수정된 부분입니다 ***
+            # 'export' 줄을 삭제하고, git clone 명령어에 직접 변수를 전달합니다.
+            GIT_TERMINAL_PROMPT=0 git clone https://github.com/morrownr/rtl8852bu.git /tmp/rtl8852bu && \
             cd /tmp/rtl8852bu && \
             
             # KDIR(devel) 경로로 빌드합니다.
@@ -83,4 +81,3 @@ modules:
             depmod -a ${KVER_MOD} && \
             
             rm -rf /tmp/rtl8852bu
-  # Wi-Fi 드라이버 빌드 모듈 끝
