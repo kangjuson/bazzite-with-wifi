@@ -44,4 +44,24 @@ modules:
 
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
 
-  
+  # ----------------------------------------------
+# --- 여기부터 Realtek USB 드라이버 추가 ---
+# ----------------------------------------------
+
+  - type: containerfile
+    snippets:
+      # 1. 드라이버 빌드에 필요한 도구들(개발 도구, Git)을 설치합니다.
+      - RUN rpm-ostree install -y kernel-devel gcc make git
+
+      # 2. GitHub에서 USB 드라이버 소스 코드를 /tmp/ 폴더로 다운로드(복제)합니다.
+      - RUN git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu
+
+      # 3. 소스 코드 폴더로 이동하여 드라이버를 빌드(make)하고 설치(make install)합니다.
+      - RUN cd /tmp/rtl8852bu && make && make install
+
+      # 4. 커널이 새 드라이버를 인식하도록 갱신하고, 필요 없어진 소스 코드 폴더를 삭제합니다.
+      - RUN depmod -a && rm -rf /tmp/rtl8852bu
+
+# ----------------------------------------------
+# --- 여기까지 추가 ---
+# ----------------------------------------------
