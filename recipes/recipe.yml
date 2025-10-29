@@ -45,28 +45,37 @@ modules:
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   - type: containerfile
     snippets:
-      - RUN rpm-ostree install -y kernel-modules-6.16.4-166.bazzite.fc42.x86_64 kernel-devel-6.16.4-166.bazzite.fc42.x86_64 gcc make git
+      # 1단계: 최신 커널 모듈, 커널 헤더, 빌드 도구를 모두 설치합니다.
+      - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
 
-      # 2단계: 하드코딩된 커널 버전으로 빌드합니다.
+  - type: containerfile
+    snippets:
+      # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다.
       - |
         RUN set -eux && \
-            # Bazzite 커널 버전을 하드코딩합니다.
-            KVER="6.16.4-166.bazzite.fc42.x86_64" && \
-            echo "--- Building for specific Kernel Version: ${KVER} ---" && \
+            # 각 패키지의 버전을 따로 찾습니다.
+            KVER_MOD=$(rpm -q kernel-modules --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
+            KVER_DEVEL=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
+            echo "--- Found Kernel-Modules Version: ${KVER_MOD} ---" && \
+            echo "--- Found Kernel-Devel Version: ${KVER_DEVEL} ---" && \
             
-            KDIR="/usr/src/kernels/${KVER}" && \
+            # 빌드 경로는 kernel-devel 버전을 사용합니다.
+            KDIR="/usr/src/kernels/${KVER_DEVEL}" && \
             echo "--- Using Kernel Build Path: ${KDIR} ---" && \
             
             # 두 경로가 모두 존재하는지 확인합니다.
             ls -ld ${KDIR} && \
-            ls -ld /lib/modules/${KVER} && \
+            ls -ld /lib/modules/${KVER_MOD} && \
             
-            git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
+            git clone https://github.com/morrownr/rtl8852bu-20240118.git /tmp/rtl8852bu && \
             cd /tmp/rtl8852bu && \
             
+            # KDIR(devel) 경로로 빌드합니다.
             make -C ${KDIR} M=$(pwd) modules && \
             make -C ${KDIR} M=$(pwd) install && \
             
-            depmod -a ${KVER} && \
+            # depmod는 KVER_MOD(modules) 버전으로 실행합니다.
+            depmod -a ${KVER_MOD} && \
             
             rm -rf /tmp/rtl8852bu
+
