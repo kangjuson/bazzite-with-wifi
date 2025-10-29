@@ -45,9 +45,13 @@ modules:
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   - type: containerfile
     snippets:
+      # 1단계: 빌드에 필요한 도구들을 설치합니다.
+      # 이 단계가 끝나야 kernel-devel이 시스템에 적용됩니다.
+      - RUN rpm-ostree install -y kernel-devel gcc make git
+
+      # 2단계: 도구가 설치된 후, 다음 단계로 드라이버를 빌드하고 설치합니다.
       - |
         RUN set -eux && \
-            rpm-ostree install -y kernel-devel gcc make git && \
             git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
             cd /tmp/rtl8852bu && \
             make && \
