@@ -46,13 +46,13 @@ modules:
   - type: containerfile
     snippets:
       # 1단계: *** 여기가 수정된 부분입니다 ***
-      # 커널 코어(모듈 폴더용), 커널 헤더(빌드용), 빌드 도구를 모두 설치합니다.
-      - RUN rpm-ostree install -y kernel-core kernel-devel gcc make git
+      # 커널 모듈(모듈 폴더용), 커널 헤더(빌드용), 빌드 도구를 모두 설치합니다.
+      - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
 
       # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다. (이 부분은 이전과 동일)
       - |
         RUN set -eux && \
-            # Bazzite 커널 버전을 찾습니다.
+            # Bazzite 커널 버전을 찾습니다. (kernel-devel 기준)
             KVER=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
             echo "--- Found Bazzite Kernel Version: ${KVER} ---" && \
             
@@ -63,7 +63,7 @@ modules:
             # KDIR 경로가 실제로 존재하는지 확인합니다.
             ls -ld ${KDIR} && \
 
-            # kernel-core가 만든 모듈 경로가 존재하는지 확인합니다.
+            # kernel-modules가 만든 모듈 경로가 존재하는지 확인합니다.
             ls -ld /lib/modules/${KVER} && \
             
             git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
