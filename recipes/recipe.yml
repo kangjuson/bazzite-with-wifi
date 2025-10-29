@@ -45,35 +45,33 @@ modules:
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   - type: containerfile
     snippets:
-      # 1단계: 모든 도구 설치
-      - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
+      # 1단계: *** 여기가 수정된 부분입니다 ***
+      # Bazzite의 "실행 중인" 커널과 "정확히 일치하는" 패키지들을 설치합니다.
+      - RUN rpm-ostree install -y \
+            kernel-modules-6.16.4-166.bazzite.fc42.x86_64 \
+            kernel-devel-6.16.4-166.bazzite.fc42.x86_64 \
+            gcc make git
 
-      # 2단계: 각 패키지의 버전을 따로 찾아서 빌드합니다.
+      # 2단계: 하드코딩된 커널 버전으로 빌드합니다.
       - |
         RUN set -eux && \
-            # *** 여기가 수정된 부분입니다 ***
-            # kernel-modules와 kernel-devel의 버전을 각각 찾습니다.
-            KVER_MOD=$(rpm -q kernel-modules --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
-            KVER_DEVEL=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
-            echo "--- Found Kernel-Modules Version: ${KVER_MOD} ---" && \
-            echo "--- Found Kernel-Devel Version: ${KVER_DEVEL} ---" && \
+            # Bazzite 커널 버전을 하드코딩합니다.
+            KVER="6.16.4-166.bazzite.fc42.x86_64" && \
+            echo "--- Building for specific Kernel Version: ${KVER} ---" && \
             
-            # 빌드 경로는 kernel-devel 버전을 사용합니다.
-            KDIR="/usr/src/kernels/${KVER_DEVEL}" && \
+            KDIR="/usr/src/kernels/${KVER}" && \
             echo "--- Using Kernel Build Path: ${KDIR} ---" && \
             
             # 두 경로가 모두 존재하는지 확인합니다.
             ls -ld ${KDIR} && \
-            ls -ld /lib/modules/${KVER_MOD} && \
+            ls -ld /lib/modules/${KVER} && \
             
             git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
             cd /tmp/rtl8852bu && \
             
-            # KDIR(devel) 경로로 빌드합니다.
             make -C ${KDIR} M=$(pwd) modules && \
             make -C ${KDIR} M=$(pwd) install && \
             
-            # depmod는 KVER_MOD(modules) 버전으로 실행합니다.
-            depmod -a ${KVER_MOD} && \
+            depmod -a ${KVER} && \
             
             rm -rf /tmp/rtl8852bu
