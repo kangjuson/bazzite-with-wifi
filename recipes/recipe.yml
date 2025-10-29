@@ -45,35 +45,35 @@ modules:
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   - type: containerfile
     snippets:
-      # 1단계: *** 여기가 수정된 부분입니다 ***
-      # 커널 모듈(모듈 폴더용), 커널 헤더(빌드용), 빌드 도구를 모두 설치합니다.
+      # 1단계: 모든 도구 설치
       - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
 
-      # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다. (이 부분은 이전과 동일)
+      # 2단계: 각 패키지의 버전을 따로 찾아서 빌드합니다.
       - |
         RUN set -eux && \
-            # Bazzite 커널 버전을 찾습니다. (kernel-devel 기준)
-            KVER=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
-            echo "--- Found Bazzite Kernel Version: ${KVER} ---" && \
+            # *** 여기가 수정된 부분입니다 ***
+            # kernel-modules와 kernel-devel의 버전을 각각 찾습니다.
+            KVER_MOD=$(rpm -q kernel-modules --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
+            KVER_DEVEL=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
+            echo "--- Found Kernel-Modules Version: ${KVER_MOD} ---" && \
+            echo "--- Found Kernel-Devel Version: ${KVER_DEVEL} ---" && \
             
-            # Bazzite 커널 헤더가 설치된 "진짜" 경로를 KDIR 변수에 저장합니다.
-            KDIR="/usr/src/kernels/${KVER}" && \
+            # 빌드 경로는 kernel-devel 버전을 사용합니다.
+            KDIR="/usr/src/kernels/${KVER_DEVEL}" && \
             echo "--- Using Kernel Build Path: ${KDIR} ---" && \
             
-            # KDIR 경로가 실제로 존재하는지 확인합니다.
+            # 두 경로가 모두 존재하는지 확인합니다.
             ls -ld ${KDIR} && \
-
-            # kernel-modules가 만든 모듈 경로가 존재하는지 확인합니다.
-            ls -ld /lib/modules/${KVER} && \
+            ls -ld /lib/modules/${KVER_MOD} && \
             
             git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
             cd /tmp/rtl8852bu && \
             
-            # Bazzite 커널 경로를 기준으로 빌드합니다.
+            # KDIR(devel) 경로로 빌드합니다.
             make -C ${KDIR} M=$(pwd) modules && \
             make -C ${KDIR} M=$(pwd) install && \
             
-            # Bazzite 커널($KVER)의 맵을 갱신합니다.
-            depmod -a ${KVER} && \
+            # depmod는 KVER_MOD(modules) 버전으로 실행합니다.
+            depmod -a ${KVER_MOD} && \
             
             rm -rf /tmp/rtl8852bu
