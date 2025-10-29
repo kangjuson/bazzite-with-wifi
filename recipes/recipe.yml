@@ -45,12 +45,7 @@ modules:
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   - type: containerfile
     snippets:
-      # 1단계: *** 여기가 수정된 부분입니다 ***
-      # Bazzite의 "실행 중인" 커널과 "정확히 일치하는" 패키지들을 설치합니다.
-      - RUN rpm-ostree install -y \
-            kernel-modules-6.16.4-166.bazzite.fc42.x86_64 \
-            kernel-devel-6.16.4-166.bazzite.fc42.x86_64 \
-            gcc make git
+      - RUN rpm-ostree install -y kernel-modules-6.16.4-166.bazzite.fc42.x86_64 kernel-devel-6.16.4-166.bazzite.fc42.x86_64 gcc make git
 
       # 2단계: 하드코딩된 커널 버전으로 빌드합니다.
       - |
