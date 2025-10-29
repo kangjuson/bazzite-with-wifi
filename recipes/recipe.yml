@@ -46,19 +46,26 @@ modules:
   - type: containerfile
     snippets:
       # 1단계: 빌드에 필요한 도구들을 설치합니다.
-      # 이 단계가 끝나야 kernel-devel이 시스템에 적용됩니다.
+      # (이 단계는 변경 없습니다)
       - RUN rpm-ostree install -y kernel-devel gcc make git
 
-      # 2단계: 도구가 설치된 후, 다음 단계로 드라이버를 빌드하고 설치합니다.
+      # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다.
       - |
         RUN set -eux && \
+            # rpm-ostree install로 설치된 Bazzite 커널 버전을 찾습니다.
+            KVER=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
+            echo "--- Found Bazzite Kernel Version: ${KVER} ---" && \
+            
+            # Bazzite 커널 헤더가 설치된 정확한 경로를 KDIR 변수에 저장합니다.
+            KDIR="/lib/modules/${KVER}/build" && \
+            echo "--- Using Kernel Build Path: ${KDIR} ---" && \
+            
             git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
             cd /tmp/rtl8852bu && \
-            make && \
-            make install && \
+            
+            # make 명령어에 '-C' 옵션으로 정확한 커널 경로(KDIR)를 전달합니다.
+            make -C ${KDIR} M=$(pwd) modules && \
+            make -C ${KDIR} M=$(pwd) install && \
+            
             depmod -a && \
             rm -rf /tmp/rtl8852bu
-
-# ----------------------------------------------
-# --- 여기까지 추가 ---
-# ----------------------------------------------
