@@ -34,9 +34,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install BlueBuild CLI
-        run: curl -fsSL https://blue-build.org/install.sh | sh
-
-      - name: Build and Push Image (No Sign)
+      - name: Install CLI, Build, and Push Image (No Sign)
         run: |
+          curl -fsSL https://blue-build.org/install.sh | sh
           bluebuild build ./recipes/${{ matrix.recipe }} --no-sign
