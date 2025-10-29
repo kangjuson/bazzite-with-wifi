@@ -45,23 +45,26 @@ modules:
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   - type: containerfile
     snippets:
-      # 1단계: 빌드에 필요한 도구들을 설치합니다.
-      - RUN rpm-ostree install -y kernel-devel gcc make git
+      # 1단계: *** 여기가 수정된 부분입니다 ***
+      # 커널 코어(모듈 폴더용), 커널 헤더(빌드용), 빌드 도구를 모두 설치합니다.
+      - RUN rpm-ostree install -y kernel-core kernel-devel gcc make git
 
-      # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다.
+      # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다. (이 부분은 이전과 동일)
       - |
         RUN set -eux && \
             # Bazzite 커널 버전을 찾습니다.
             KVER=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
             echo "--- Found Bazzite Kernel Version: ${KVER} ---" && \
             
-            # *** 여기가 수정된 부분입니다 ***
             # Bazzite 커널 헤더가 설치된 "진짜" 경로를 KDIR 변수에 저장합니다.
             KDIR="/usr/src/kernels/${KVER}" && \
             echo "--- Using Kernel Build Path: ${KDIR} ---" && \
             
-            # KDIR 경로가 실제로 존재하는지 확인합니다. (없으면 여기서 실패)
+            # KDIR 경로가 실제로 존재하는지 확인합니다.
             ls -ld ${KDIR} && \
+
+            # kernel-core가 만든 모듈 경로가 존재하는지 확인합니다.
+            ls -ld /lib/modules/${KVER} && \
             
             git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
             cd /tmp/rtl8852bu && \
