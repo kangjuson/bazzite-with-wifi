@@ -50,6 +50,11 @@ modules:
 
   - type: containerfile
     snippets:
+      # 1단계: 모든 도구 설치
+      - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
+
+  - type: containerfile
+    snippets:
       # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다.
       - |
         RUN set -eux && \
@@ -67,7 +72,9 @@ modules:
             ls -ld ${KDIR} && \
             ls -ld /lib/modules/${KVER_MOD} && \
             
-            git clone https://github.com/morrownr/rtl8852bu-20240118.git /tmp/rtl8852bu && \
+            # *** 여기가 수정된 부분입니다 ***
+            # 존재하지 않는 '...-20240118' 대신, 메인 저장소 주소를 사용합니다.
+            git clone https://github.com/morrownr/rtl8852bu.git /tmp/rtl8852bu && \
             cd /tmp/rtl8852bu && \
             
             # KDIR(devel) 경로로 빌드합니다.
@@ -78,4 +85,3 @@ modules:
             depmod -a ${KVER_MOD} && \
             
             rm -rf /tmp/rtl8852bu
-
