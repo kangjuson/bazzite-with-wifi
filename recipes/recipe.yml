@@ -45,38 +45,43 @@ modules:
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   - type: containerfile
     snippets:
-      # 1단계: 모든 도구 설치
-      - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
+      # Step 1: Install build tools PLUS curl and unzip
+      - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make curl unzip git
 
   - type: containerfile
     snippets:
-      # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다.
+      # Step 2: Download ZIP, unzip, build, and install
       - |
         RUN set -eux && \
-            # 각 패키지의 버전을 따로 찾습니다.
+            # Find kernel versions
             KVER_MOD=$(rpm -q kernel-modules --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
             KVER_DEVEL=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
             echo "--- Found Kernel-Modules Version: ${KVER_MOD} ---" && \
             echo "--- Found Kernel-Devel Version: ${KVER_DEVEL} ---" && \
             
-            # 빌드 경로는 kernel-devel 버전을 사용합니다.
+            # Set kernel source directory
             KDIR="/usr/src/kernels/${KVER_DEVEL}" && \
             echo "--- Using Kernel Build Path: ${KDIR} ---" && \
             
-            # 두 경로가 모두 존재하는지 확인합니다.
+            # Verify paths exist
             ls -ld ${KDIR} && \
             ls -ld /lib/modules/${KVER_MOD} && \
             
             # *** 여기가 수정된 부분입니다 ***
-            # 다시 'https://' 프로토콜을 사용하고, URL 끝에 '.git'을 추가하고, 인증 방지 플래그를 유지합니다.
-            GIT_TERMINAL_PROMPT=0 git -c credential.helper="" clone https://github.com/morrownr/rtl8852bu.git /tmp/rtl8852bu && \
-            cd /tmp/rtl8852bu && \
+            # Download the ZIP archive of the main branch using curl with -L to follow redirects
+            curl -L https://github.com/morrownr/rtl8852bu/archive/refs/heads/main.zip -o /tmp/rtl8852bu.zip && \
+            # Unzip the archive into /tmp
+            unzip /tmp/rtl8852bu.zip -d /tmp && \
+            # Change directory into the unzipped folder (usually repo name + branch name)
+            cd /tmp/rtl8852bu-main && \
             
-            # KDIR(devel) 경로로 빌드합니다.
+            # Build using the kernel source directory
             make -C ${KDIR} M=$(pwd) modules && \
             make -C ${KDIR} M=$(pwd) install && \
             
-            # depmod는 KVER_MOD(modules) 버전으로 실행합니다.
+            # Update module dependencies for the correct kernel module version
             depmod -a ${KVER_MOD} && \
             
-            rm -rf /tmp/rtl8852bu
+            # Clean up temporary files/folders
+            rm -rf /tmp/rtl8852bu-main /tmp/rtl8852bu.zip
+
