@@ -45,33 +45,35 @@ modules:
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   - type: containerfile
     snippets:
-      # 1단계: 빌드 도구 설치 (git 포함)
+      # 1단계: 모든 도구 설치
       - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
 
-  - type: containerfile
-    snippets:
-      # 2단계: 커널 버전 찾기, lwfinger 저장소 복제, 빌드, 설치
+      # 2단계: 각 패키지의 버전을 따로 찾아서 빌드합니다.
       - |
         RUN set -eux && \
-            # 커널 버전 찾기
+            # *** 여기가 수정된 부분입니다 ***
+            # kernel-modules와 kernel-devel의 버전을 각각 찾습니다.
             KVER_MOD=$(rpm -q kernel-modules --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
             KVER_DEVEL=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
-            # 커널 소스 디렉토리 설정 (devel 버전 기준)
+            echo "--- Found Kernel-Modules Version: ${KVER_MOD} ---" && \
+            echo "--- Found Kernel-Devel Version: ${KVER_DEVEL} ---" && \
+            
+            # 빌드 경로는 kernel-devel 버전을 사용합니다.
             KDIR="/usr/src/kernels/${KVER_DEVEL}" && \
+            echo "--- Using Kernel Build Path: ${KDIR} ---" && \
             
-            # *** 여기가 수정된 부분입니다 ***
-            # lwfinger의 저장소를 https, .git 접미사, 인증 방지 플래그와 함께 복제합니다.
-            GIT_TERMINAL_PROMPT=0 git -c credential.helper="" clone https://github.com/lwfinger/rtw8852bu.git /tmp/rtw8852bu && \
-            # 복제된 저장소로 디렉토리 변경
-            cd /tmp/rtw8852bu && \
+            # 두 경로가 모두 존재하는지 확인합니다.
+            ls -ld ${KDIR} && \
+            ls -ld /lib/modules/${KVER_MOD} && \
             
-            # 커널 소스 디렉토리 기준으로 빌드
+            git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
+            cd /tmp/rtl8852bu && \
+            
+            # KDIR(devel) 경로로 빌드합니다.
             make -C ${KDIR} M=$(pwd) modules && \
-            # 커널 모듈 디렉토리에 설치
             make -C ${KDIR} M=$(pwd) install && \
             
-            # 올바른 커널 모듈 버전에 대한 의존성 업데이트
+            # depmod는 KVER_MOD(modules) 버전으로 실행합니다.
             depmod -a ${KVER_MOD} && \
             
-            # 소스 코드 정리
-            rm -rf /tmp/rtw8852bu
+            rm -rf /tmp/rtl8852bu
