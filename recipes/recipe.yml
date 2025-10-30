@@ -43,9 +43,10 @@ modules:
       - scope: user # Also add Flathub user repo, but no user packages
 
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
+  # Wi-Fi 드라이버 빌드를 위한 모듈 시작
   - type: containerfile
     snippets:
-      # 1단계: 모든 도구 설치 (curl/unzip 대신 git 사용)
+      # 1단계: 모든 도구 설치
       - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
 
   - type: containerfile
@@ -68,8 +69,8 @@ modules:
             ls -ld /lib/modules/${KVER_MOD} && \
             
             # *** 여기가 수정된 부분입니다 ***
-            # URL 끝에 '.git'을 추가하고, 모든 인증 방지 플래그를 유지합니다.
-            GIT_TERMINAL_PROMPT=0 git -c credential.helper="" clone https://github.com/morrownr/rtl8852bu.git /tmp/rtl8852bu && \
+            # 'https://' 대신 'git://' 프로토콜을 사용합니다.
+            GIT_TERMINAL_PROMPT=0 git -c credential.helper="" clone git://github.com/morrownr/rtl8852bu.git /tmp/rtl8852bu && \
             cd /tmp/rtl8852bu && \
             
             # KDIR(devel) 경로로 빌드합니다.
@@ -80,3 +81,4 @@ modules:
             depmod -a ${KVER_MOD} && \
             
             rm -rf /tmp/rtl8852bu
+  # Wi-Fi 드라이버 빌드 모듈 끝
