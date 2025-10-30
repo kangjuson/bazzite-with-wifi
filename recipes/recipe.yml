@@ -43,6 +43,7 @@ modules:
       - scope: user # Also add Flathub user repo, but no user packages
 
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
+  # --- Wi-Fi 및 오디오 드라이버 빌드 시작 ---
   - type: containerfile
     snippets:
       # 1단계: Wi-Fi와 오디오 드라이버 빌드에 필요한 모든 도구 설치
@@ -61,15 +62,15 @@ modules:
             ls -ld /lib/modules/${KVER_MOD} && \
             
             # --- 2. Wi-Fi 드라이버 빌드 (lwfinger) ---
-            echo "--- Building WiFi Driver ---" && \
+            echo "--- Building WiFi Driver (rtw8852bu) ---" && \
             GIT_TERMINAL_PROMPT=0 git -c credential.helper="" clone https://github.com/lwfinger/rtw8852bu.git /tmp/rtw8852bu && \
             cd /tmp/rtw8852bu && \
             make -C ${KDIR} M=$(pwd) modules && \
             make -C ${KDIR} M=$(pwd) install && \
             cd / && \
 
-            # --- 3. 오디오 드라이버 빌드 (egorenar) ---
-            echo "--- Building Audio Driver ---" && \
+            # --- 3. 오디오 드라이버 빌드 (cs8409) ---
+            echo "--- Building Audio Driver (cs8409) ---" && \
             GIT_TERMINAL_PROMPT=0 git -c credential.helper="" clone https://github.com/egorenar/snd-hda-codec-cs8409.git /tmp/cs8409 && \
             cd /tmp/cs8409 && \
             make -C ${KDIR} M=$(pwd) && \
@@ -79,4 +80,4 @@ modules:
             echo "--- Running Depmod & Cleanup ---" && \
             depmod -a ${KVER_MOD} && \
             rm -rf /tmp/rtw8852bu /tmp/cs8409
-            rm -rf /tmp/rtl8852bu
+  # --- Wi-Fi 및 오디오 드라이버 빌드 끝 ---
