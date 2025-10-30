@@ -45,43 +45,33 @@ modules:
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   - type: containerfile
     snippets:
-      # Step 1: Install build tools PLUS curl and unzip
-      - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make curl unzip git
+      # 1단계: 빌드 도구 설치 (git 포함)
+      - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
 
   - type: containerfile
     snippets:
-      # Step 2: Download ZIP, unzip, build, and install
+      # 2단계: 커널 버전 찾기, lwfinger 저장소 복제, 빌드, 설치
       - |
         RUN set -eux && \
-            # Find kernel versions
+            # 커널 버전 찾기
             KVER_MOD=$(rpm -q kernel-modules --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
             KVER_DEVEL=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
-            echo "--- Found Kernel-Modules Version: ${KVER_MOD} ---" && \
-            echo "--- Found Kernel-Devel Version: ${KVER_DEVEL} ---" && \
-            
-            # Set kernel source directory
+            # 커널 소스 디렉토리 설정 (devel 버전 기준)
             KDIR="/usr/src/kernels/${KVER_DEVEL}" && \
-            echo "--- Using Kernel Build Path: ${KDIR} ---" && \
-            
-            # Verify paths exist
-            ls -ld ${KDIR} && \
-            ls -ld /lib/modules/${KVER_MOD} && \
             
             # *** 여기가 수정된 부분입니다 ***
-            # Download the ZIP archive of the main branch using curl with -L to follow redirects
-            curl -L https://github.com/morrownr/rtl8852bu/archive/refs/heads/main.zip -o /tmp/rtl8852bu.zip && \
-            # Unzip the archive into /tmp
-            unzip /tmp/rtl8852bu.zip -d /tmp && \
-            # Change directory into the unzipped folder (usually repo name + branch name)
-            cd /tmp/rtl8852bu-main && \
+            # lwfinger의 저장소를 https, .git 접미사, 인증 방지 플래그와 함께 복제합니다.
+            GIT_TERMINAL_PROMPT=0 git -c credential.helper="" clone https://github.com/lwfinger/rtw8852bu.git /tmp/rtw8852bu && \
+            # 복제된 저장소로 디렉토리 변경
+            cd /tmp/rtw8852bu && \
             
-            # Build using the kernel source directory
+            # 커널 소스 디렉토리 기준으로 빌드
             make -C ${KDIR} M=$(pwd) modules && \
+            # 커널 모듈 디렉토리에 설치
             make -C ${KDIR} M=$(pwd) install && \
             
-            # Update module dependencies for the correct kernel module version
+            # 올바른 커널 모듈 버전에 대한 의존성 업데이트
             depmod -a ${KVER_MOD} && \
             
-            # Clean up temporary files/folders
-            rm -rf /tmp/rtl8852bu-main /tmp/rtl8852bu.zip
-
+            # 소스 코드 정리
+            rm -rf /tmp/rtw8852bu
