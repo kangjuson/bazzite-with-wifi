@@ -45,35 +45,38 @@ modules:
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   - type: containerfile
     snippets:
-      # 1단계: 모든 도구 설치
+      # 1단계: Wi-Fi와 오디오 드라이버 빌드에 필요한 모든 도구 설치
       - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
 
-      # 2단계: 각 패키지의 버전을 따로 찾아서 빌드합니다.
+  - type: containerfile
+    snippets:
+      # 2단계: 설치된 커널 버전을 찾아 두 드라이버를 모두 빌드/설치
       - |
         RUN set -eux && \
-            # *** 여기가 수정된 부분입니다 ***
-            # kernel-modules와 kernel-devel의 버전을 각각 찾습니다.
+            # --- 1. 커널 변수 설정 (공통) ---
             KVER_MOD=$(rpm -q kernel-modules --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
             KVER_DEVEL=$(rpm -q kernel-devel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}') && \
-            echo "--- Found Kernel-Modules Version: ${KVER_MOD} ---" && \
-            echo "--- Found Kernel-Devel Version: ${KVER_DEVEL} ---" && \
-            
-            # 빌드 경로는 kernel-devel 버전을 사용합니다.
             KDIR="/usr/src/kernels/${KVER_DEVEL}" && \
-            echo "--- Using Kernel Build Path: ${KDIR} ---" && \
-            
-            # 두 경로가 모두 존재하는지 확인합니다.
             ls -ld ${KDIR} && \
             ls -ld /lib/modules/${KVER_MOD} && \
             
-            git clone https://github.com/morrownr/rtl8852bu-20240418.git /tmp/rtl8852bu && \
-            cd /tmp/rtl8852bu && \
-            
-            # KDIR(devel) 경로로 빌드합니다.
+            # --- 2. Wi-Fi 드라이버 빌드 (lwfinger) ---
+            echo "--- Building WiFi Driver ---" && \
+            GIT_TERMINAL_PROMPT=0 git -c credential.helper="" clone https://github.com/lwfinger/rtw8852bu.git /tmp/rtw8852bu && \
+            cd /tmp/rtw8852bu && \
             make -C ${KDIR} M=$(pwd) modules && \
             make -C ${KDIR} M=$(pwd) install && \
+            cd / && \
+
+            # --- 3. 오디오 드라이버 빌드 (egorenar) ---
+            echo "--- Building Audio Driver ---" && \
+            GIT_TERMINAL_PROMPT=0 git -c credential.helper="" clone https://github.com/egorenar/snd-hda-codec-cs8409.git /tmp/cs8409 && \
+            cd /tmp/cs8409 && \
+            make -C ${KDIR} M=$(pwd) && \
+            make -C ${KDIR} M=$(pwd) install && \
             
-            # depmod는 KVER_MOD(modules) 버전으로 실행합니다.
+            # --- 4. 모듈 맵 갱신 및 정리 (공통) ---
+            echo "--- Running Depmod & Cleanup ---" && \
             depmod -a ${KVER_MOD} && \
-            
+            rm -rf /tmp/rtw8852bu /tmp/cs8409
             rm -rf /tmp/rtl8852bu
