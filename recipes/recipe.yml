@@ -43,15 +43,15 @@ modules:
       - scope: user # Also add Flathub user repo, but no user packages
 
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
-  # --- Wi-Fi 및 오디오 드라이버 빌드 시작 ---
+  # --- 오디오 드라이버 빌드 시작 ---
   - type: containerfile
     snippets:
-      # 1단계: Wi-Fi와 오디오 드라이버 빌드에 필요한 도구 설치 (git 대신 curl, unzip 사용)
+      # 1단계: 오디오 드라이버 빌드에 필요한 도구 설치
       - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make curl unzip
 
   - type: containerfile
     snippets:
-      # 2단계: 설치된 커널 버전을 찾아 두 드라이버를 모두 빌드/설치
+      # 2단계: 설치된 커널 버전을 찾아 오디오 드라이버를 빌드/설치
       - |
         RUN set -eux && \
             # --- 1. 커널 변수 설정 (공통) ---
@@ -60,20 +60,8 @@ modules:
             KDIR="/usr/src/kernels/${KVER_DEVEL}" && \
             ls -ld ${KDIR} && \
             ls -ld /lib/modules/${KVER_MOD} && \
-            
-            # --- 2. Wi-Fi 드라이버 빌드 (lwfinger) ---
-            echo "--- Downloading WiFi Driver (rtw8852bu) ---" && \
-            # -L 옵션으로 리디렉션(redirect)을 따라가서 main.zip 파일을 다운로드합니다.
-            curl -L https://github.com/lwfinger/rtw8852bu/archive/refs/heads/main.zip -o /tmp/wifi.zip && \
-            unzip /tmp/wifi.zip -d /tmp && \
-            # 압축 해제된 폴더(이름이 -main으로 끝남)로 이동합니다.
-            cd /tmp/rtw8852bu-main && \
-            echo "--- Building WiFi Driver ---" && \
-            make -C ${KDIR} M=$(pwd) modules && \
-            make -C ${KDIR} M=$(pwd) install && \
-            cd / && \
 
-            # --- 3. 오디오 드라이버 빌드 (cs8409) ---
+            # --- 2. 오디오 드라이버 빌드 (cs8409) ---
             echo "--- Downloading Audio Driver (cs8409) ---" && \
             curl -L https://github.com/egorenar/snd-hda-codec-cs8409/archive/refs/heads/main.zip -o /tmp/audio.zip && \
             unzip /tmp/audio.zip -d /tmp && \
@@ -82,7 +70,8 @@ modules:
             make -C ${KDIR} M=$(pwd) && \
             make -C ${KDIR} M=$(pwd) install && \
             
-            # --- 4. 모듈 맵 갱신 및 정리 (공통) ---
+            # --- 3. 모듈 맵 갱신 및 정리 (공통) ---
             echo "--- Running Depmod & Cleanup ---" && \
             depmod -a ${KVER_MOD} && \
-            rm -rf /tmp/wifi.zip /tmp/rtw8852bu-main /tmp
+            rm -rf /tmp/audio.zip /tmp/snd-hda-codec-cs8409-main
+  # --- 오디오 드라이버 빌드 끝 ---
