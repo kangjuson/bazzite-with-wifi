@@ -44,7 +44,7 @@ modules:
 
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
   # Wi-Fi 드라이버 빌드를 위한 모듈 시작
-    - type: containerfile
+  - type: containerfile
     snippets:
       # 1단계: 모든 도구 설치
       - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
