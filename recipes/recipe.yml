@@ -43,15 +43,15 @@ modules:
       - scope: user # Also add Flathub user repo, but no user packages
 
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
-  # Wi-Fi 드라이버 빌드를 위한 모듈 시작
   - type: containerfile
     snippets:
-      # 1단계: 모든 도구 설치
-      - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make git
+      # 1단계: *** 여기가 수정된 부분입니다 ***
+      # git 대신 curl과 unzip을 설치합니다.
+      - RUN rpm-ostree install -y kernel-modules kernel-devel gcc make curl unzip
 
   - type: containerfile
     snippets:
-      # 2단계: 설치된 Bazzite 커널 버전을 찾아서 빌드합니다.
+      # 2단계: git clone 대신 curl로 ZIP을 다운로드하여 빌드합니다.
       - |
         RUN set -eux && \
             # 각 패키지의 버전을 따로 찾습니다.
@@ -69,9 +69,11 @@ modules:
             ls -ld /lib/modules/${KVER_MOD} && \
             
             # *** 여기가 수정된 부분입니다 ***
-            # 'https://' 대신 'git://' 프로토콜을 사용합니다.
-            GIT_TERMINAL_PROMPT=0 git -c credential.helper="" clone git://github.com/morrownr/rtl8852bu.git /tmp/rtl8852bu && \
-            cd /tmp/rtl8852bu && \
+            # git clone 대신 curl로 ZIP 파일을 다운로드합니다.
+            curl -L https://github.com/morrownr/rtl8852bu/archive/refs/heads/main.zip -o /tmp/rtl8852bu.zip && \
+            unzip /tmp/rtl8852bu.zip -d /tmp && \
+            # 압축 해제된 폴더로 이동합니다. (폴더 이름이 '...-main'일 것입니다)
+            cd /tmp/rtl8852bu-main && \
             
             # KDIR(devel) 경로로 빌드합니다.
             make -C ${KDIR} M=$(pwd) modules && \
@@ -80,4 +82,5 @@ modules:
             # depmod는 KVER_MOD(modules) 버전으로 실행합니다.
             depmod -a ${KVER_MOD} && \
             
-            rm -rf /tmp/rtl8852bu
+            # 임시 파일/폴더를 삭제합니다.
+            rm -rf /tmp/rtl8852bu-main /tmp/rtl8852bu.zip
